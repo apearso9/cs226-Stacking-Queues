@@ -1,0 +1,129 @@
+Allison Pearson
+cs226 hw4
+
+Project Description:
+
+___________________________________________________________________________________________________________________________
+
+The first task is to implement a basic RPN calculator that supports integer operands like 1, 64738, and -42 
+as well as the (binary) integer operators +, -, *, /, and %. The style of arithmetic expressions our calculator 
+will evaluate is also called a post-fix notation. The task is to write a driver (client) program that uses our 
+Stack interface and one of the given implementations to perform these calculations as specified here.
+
+The program should be called Calc and work as follows:
+
+The user enters input through System.in consisting of operands and operators, presumably in post-fix notation. 
+We have also included some extra operators to get information about results and the current state of the stack.
+
+If the user enters a valid integer, you push that integer onto the stack.
+
+If the user enters a valid operator, you pop two integers off the stack, perform the requested operation, and push 
+the result back onto the stack.
+
+If the user enters the symbol ? (that’s a question mark), you print the current state of the stack using its toString 
+method followed by a new line.
+
+If the user enters the symbol ^ (that’s a caret), you pop the top element off the stack and print only that element 
+(not the entire stack) followed by a new line.
+
+If the user enters the symbol ! (that’s an exclamation mark or bang), you exit the program.
+
+If the user enters blah or 1.5 or anything else that doesn’t make sense for an integer calculator as specified above, 
+your program should make it clear that it can’t do anything helpful with that input; but it should not stop at that point.
+
+If the user requests an operation for which there are not enough operands on the stack, your program should notify the 
+user of the problem but leave the stack unchanged; again, it should certainly not stop at that point.
+
+___________________________________________________________________________________________________________________________
+
+Your second task is to implement a generic ArrayDeque class as outlined in lecture. As is to be expected, ArrayDeque must 
+implement the Deque interface provided on Piazza.
+
+Your implementation must be done in terms of an array that grows by doubling as needed. It’s up to you whether you want to 
+use a built-in Java array or the SimpleArray class you know and love; just in case you prefer the latter, we’ve once again 
+included it on the Piazza post for this assignment. Your initial array must have a length of one slot only! 
+
+Your implemention must support all Deque operations except insertion in (worst-case) constant time; insertion can take longer 
+when you need to grow the array, but overall all insertion operations must be constant amortized time as discussed in lecture.
+
+You should provide a toString method in addition to the methods required by the Deque interface. The toString will orient the 
+front of the deque at the left and the back at the right. For example, a new dequeue into which 1, 2, and 3 were inserted using 
+insertBack() should print as [1, 2, 3] whereas an empty dequeue should print as [].
+
+___________________________________________________________________________________________________________________________
+
+Part A
+
+For the program Calc, I determined several additional errors that could happen with
+user input:
+
+-User inputs "." when there is nothing in the stack.
+    The operation should print the item at the top of the stack, but when there is
+    nothing in the stack, there is nothing to be printed so an exception is thrown.
+    I discovered this error when I called "." when the stack was empty and it caused
+    the program to exit. I handled this by outputting an error message and moving on
+    to the next operation.
+-User inputs "/" when the item at the top of the stack is 0.
+    Because of postfix notation, calling this operation when the item at the top of the
+    stack is 0 causes the program to attempt to divide by 0. I discovered this error
+    when I called "/" and the top two items in the stack were 2 and 0. 2/0 is undefined,
+    so this operation isn't possible. I handle this operation by outputting an error
+    message, changing nothing in the stack, and moving onto the next operation.
+-User inputs "%" when the item at the top of the stack is 0.
+    Similar to the above error, attempting to do (any number % 0) will cause an error in
+    the program. I discovered this when I called "%" and the top two items were 3 and 0.
+    I handled this by outputting an error message, keeping the stack the same, and moving
+    on to the next operation.
+
+Part B
+
+For the flawed deque implementation, I used jUnit tests to discover several errors and
+make predictions about what could be causing these errors. Here is what I found:
+
+-Calling back() on an empty deque throws a length exception instead of an empty exception
+    I found this with my test called emptyBackTest(), which calls the method "back()" on
+    an empty version of stringDeque. I expected this to throw an empty exception, but it
+    threw a length exception, which is not correct. My guess is that the back() method checks
+    to see if the deque is empty, which it should do, but instead of throwing an empty
+    exception, it throws a length exception.
+
+-The method insertBack() doesn't work every time.
+    I found this with my test called insertBackTest(). This repeatedly calls "insertBack(),"
+    and then compares the final state of the deque with what it should be: a list of the
+    numbers that were inserted. This quickly revealed a major flaw of the deque implementation;
+    when I inserted numbers 1 - 7, the only ones that ended up in the deque at the end were
+    1, 3, 5, and 6; 2, 4, and 7 were nowhere to be found in the deque. This was most likely
+    caused by an issue with growing the array. Judging from the pattern of the numbers that are
+    input, it seems that any time the array becomes full and needs to be doubled, it only doubles
+    the size of the array but doesn't actually insert the number that needs to be inserted.
+    This discovery was confirmed in my test called "insertThenRemoveBackTest," where I attempt
+    to insert two strings and then remove them. Since the second string is never inserted, back()
+    and front() reveal the same string, which caused one of the assert statements to fail.
+
+-Calling removeFront() or removeBack() on empty deques don't cause an exception to be thrown
+    I found this with my tests called removeFrontWhenEmpty() and removeBackWhenEmpty(). For both of
+    these, it is clearly impossible for the program to remove an object that doesn't exist, so
+    a correct implementation of deque would throw an empty exception. However, this flawed
+    implementation doesn't throw any exception, which would certainly cause a major run-time error
+    if a user attempted to call either of these methods on an empty deque. My best guess to the
+    cause of this error is that removeFront() and removeBack() both fail to first check if the
+    deque is empty before performing their operations, which is very necessary to a functioning
+    program.
+
+In terms of the actual process of writing tests, I started out with very basic methods. I checked if
+all the operations (insert, remove, empty, etc.) worked, and then I began testing different combinations
+of those operations- what happens if user inserts something and then calls front, then calls back, then
+removes it. I tested as many of these combinations that I could think of, and within those tests, if
+something caused an error, I would write more specific tests to determine more about what could be causing
+the problem. For example, when I noticed insertBack() wasn't exactly working correctly, I rewrote my
+insertBack() method to be more comprehensive and compare the entire deque to what it should be rather
+than just the front and the back, as I had been doing before.
+
+The most difficult part of the process was that once I began discovering certain errors, it became harder
+to write tests for possible combinations that involved the flawed methods. For example, since I knew
+insertFront() worked fine but insertBack() did not, I could not test them exactly the same way; for
+insertFront(), I have a method that inserts several things in the front and then checks to see if back()
+reveals what it is supposed to. insertBack() could not be tested in the same way since I knew that it would
+not read in all of the inputs that it was supposed to. Thus, when I discovered errors, I had to be very
+specific with any tests that I wrote involving that flawed method, so I could be sure that any additional
+problems were caused by other methods and not the one I already knew was flawed.
